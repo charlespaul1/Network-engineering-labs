@@ -5,37 +5,22 @@
 This project demonstrates the design, configuration and troubleshooting
 of a small business network using Cisco Packet Tracer.
 
+The network uses VLAN segmentation, 802.1Q trunking, router-on-a-stick
+inter-VLAN routing, DHCP, SSH, NAT concepts and an extended ACL.
+
 ## Objectives
 
-- Configure VLANs
+- Design a small business LAN
+- Implement VLAN segmentation
 - Configure trunking
 - Configure inter-VLAN routing
 - Configure DHCP
-- Configure NAT
+- Configure switch management
 - Configure SSH
-- Implement a basic ACL
-- Test end-to-end connectivity
-- Document network configuration
-- Perform structured troubleshooting
-
-## Technologies
-
-- Cisco IOS
-- Cisco Packet Tracer
-- IPv4
-- VLAN
-- 802.1Q trunking
-- Inter-VLAN routing
-- DHCP
-- NAT
-- ACL
-- SSH
-
-## Network Devices
-
-- 1 Cisco Router
-- 1 Cisco Switch
-- 2 PCs
+- Implement basic access control
+- Verify connectivity
+- Troubleshoot network failures
+- Document the network
 
 ## Topology
 
@@ -88,7 +73,3 @@ show ip interface brief
 show ip route
 show ip dhcp binding
 show running-config
-- 1 Server
-## Status
-
-In Progress
