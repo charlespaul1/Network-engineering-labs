@@ -29,7 +29,7 @@ Same pattern: loopback `10.255.0.2/32`, CORE1 link `10.0.12.2/30`, SW1 link `10.
 
 ## SW1 (CE12800) routed uplinks
 
-Replace the example ports with the ports you cabled.
+
 
 ```
 <HUAWEI> system-view
@@ -66,5 +66,4 @@ Expected: every directly connected neighbour replies.
 
 ## Troubleshooting notes
 
-Add anything that went wrong in this phase to [troubleshooting.md](../troubleshooting.md).
 
