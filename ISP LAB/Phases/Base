@@ -1,1 +1,70 @@
+# Phase 1: Base configuration and addressing
+
+**Goal:** every device has a hostname, a loopback and working point-to-point links.
+
+## CORE1 (NE40E)
+
+```
+<HUAWEI> system-view
+[HUAWEI] sysname CORE1
+[CORE1] interface LoopBack0
+[CORE1-LoopBack0] ip address 10.255.0.1 32
+[CORE1-LoopBack0] quit
+[CORE1] interface GigabitEthernet1/0/0
+[CORE1-GigabitEthernet1/0/0] undo shutdown
+[CORE1-GigabitEthernet1/0/0] ip address 10.0.12.1 30
+[CORE1-GigabitEthernet1/0/0] quit
+[CORE1] interface GigabitEthernet1/0/1
+[CORE1-GigabitEthernet1/0/1] undo shutdown
+[CORE1-GigabitEthernet1/0/1] ip address 10.0.1.1 30
+[CORE1-GigabitEthernet1/0/1] quit
+[CORE1] interface GigabitEthernet1/0/2
+[CORE1-GigabitEthernet1/0/2] undo shutdown
+[CORE1-GigabitEthernet1/0/2] ip address 10.0.2.1 30
+```
+
+## CORE2 (NE40E)
+
+Same pattern: loopback `10.255.0.2/32`, CORE1 link `10.0.12.2/30`, SW1 link `10.0.3.1/30`, SW2 link `10.0.4.1/30`.
+
+## SW1 (CE12800) routed uplinks
+
+Replace the example ports with the ports you cabled.
+
+```
+<HUAWEI> system-view
+[HUAWEI] sysname SW1
+[SW1] interface LoopBack0
+[SW1-LoopBack0] ip address 10.255.0.11 32
+[SW1-LoopBack0] quit
+[SW1] interface GE1/0/1
+[SW1-GE1/0/1] undo portswitch
+[SW1-GE1/0/1] ip address 10.0.1.2 30
+[SW1-GE1/0/1] quit
+[SW1] interface GE1/0/2
+[SW1-GE1/0/2] undo portswitch
+[SW1-GE1/0/2] ip address 10.0.3.2 30
+```
+
+SW2: loopback `10.255.0.12/32`, uplinks `10.0.2.2/30` (CORE1) and `10.0.4.2/30` (CORE2).
+
+## Verify
+
+```
+display ip interface brief
+ping 10.0.12.2
+ping 10.0.1.1
+```
+
+Expected: every directly connected neighbour replies.
+
+## Evidence
+
+![Interface summary CORE1](../screenshots/phase1-ip-interface-brief-core1.png)
+![Interface summary SW1](../screenshots/phase1-ip-interface-brief-sw1.png)
+![Neighbour ping](../screenshots/phase1-ping-neighbour.png)
+
+## Troubleshooting notes
+
+Add anything that went wrong in this phase to [troubleshooting.md](../troubleshooting.md).
 
