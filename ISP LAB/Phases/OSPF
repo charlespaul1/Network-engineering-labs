@@ -1,1 +1,50 @@
+# Phase 2: OSPF underlay
+
+**Goal:** every loopback is reachable from every device.
+
+## CORE1
+
+```
+[CORE1] ospf 1 router-id 10.255.0.1
+[CORE1-ospf-1] area 0
+[CORE1-ospf-1-area-0.0.0.0] network 10.255.0.1 0.0.0.0
+[CORE1-ospf-1-area-0.0.0.0] network 10.0.12.0 0.0.0.3
+[CORE1-ospf-1-area-0.0.0.0] network 10.0.1.0 0.0.0.3
+[CORE1-ospf-1-area-0.0.0.0] network 10.0.2.0 0.0.0.3
+```
+
+Repeat on CORE2, SW1 and SW2 with their own router-id, loopback and connected links.
+
+## Verify
+
+```
+display ospf peer brief
+display ospf routing
+display ip routing-table protocol ospf
+ping -a 10.255.0.1 10.255.0.12
+```
+
+Expected: all neighbours in **Full** state; CORE1 can reach SW2's loopback.
+
+## Wildcard masks used
+
+| Network | Wildcard |
+|---|---|
+| /32 loopback | 0.0.0.0 |
+| /30 link | 0.0.0.3 |
+| /24 customer subnet | 0.0.0.255 |
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check | Fix |
+|---|---|---|---|
+| Neighbour stuck in Init or 2-Way | Mismatched area, mask or timers | `display ospf peer`, `display ospf interface` | Correct `network` statement or timers |
+| No neighbour | Interface down or wrong subnet | `display ip interface brief` | `undo shutdown`, fix IP |
+| Route missing | Network not advertised | `display ospf lsdb` | Add `network` statement |
+
+## Evidence
+
+![OSPF peers CORE1](../screenshots/phase2-ospf-peer-brief-core1.png)
+![OSPF routing table CORE1](../screenshots/phase2-ospf-routing-core1.png)
+![Loopback to loopback ping](../screenshots/phase2-loopback-ping.png)
 
