@@ -1,1 +1,133 @@
+# Phase 3: VLANs, LACP, VRRP and customer routing
+
+**Goal:** customer VLANs with a redundant default gateway, advertised into OSPF.
+
+## 3.1 VLANs and Eth-Trunk between SW1 and SW2
+
+Members are `GE1/0/3` and `GE1/0/4`. Apply the same on SW2.
+
+```
+[SW1] vlan batch 10 20 30
+[SW1] interface Eth-Trunk1
+[SW1-Eth-Trunk1] mode lacp-static
+[SW1-Eth-Trunk1] port link-type trunk
+[SW1-Eth-Trunk1] port trunk allow-pass vlan 10 20 30
+[SW1-Eth-Trunk1] quit
+[SW1] interface GE1/0/3
+[SW1-GE1/0/3] eth-trunk 1
+[SW1-GE1/0/3] quit
+[SW1] interface GE1/0/4
+[SW1-GE1/0/4] eth-trunk 1
+[SW1-GE1/0/4] quit
+```
+
+Why: two cables behave as one logical trunk (more bandwidth, redundancy, no STP blocking). The trunk must allow VLANs 10, 20 and 30 or VRRP advertisements will not cross it. Both ends must use the same mode.
+
+## 3.2 VRRP gateways
+
+SW1 (master for VLAN10):
+
+```
+[SW1] interface Vlanif10
+[SW1-Vlanif10] ip address 192.168.10.2 24
+[SW1-Vlanif10] vrrp vrid 10 virtual-ip 192.168.10.1
+[SW1-Vlanif10] vrrp vrid 10 priority 120
+[SW1-Vlanif10] vrrp vrid 10 preempt-mode timer delay 20
+[SW1-Vlanif10] quit
+[SW1] interface Vlanif20
+[SW1-Vlanif20] ip address 192.168.20.2 24
+[SW1-Vlanif20] vrrp vrid 20 virtual-ip 192.168.20.1
+[SW1-Vlanif20] quit
+```
+
+SW2 (master for VLAN20):
+
+```
+[SW2] interface Vlanif10
+[SW2-Vlanif10] ip address 192.168.10.3 24
+[SW2-Vlanif10] vrrp vrid 10 virtual-ip 192.168.10.1
+[SW2-Vlanif10] quit
+[SW2] interface Vlanif20
+[SW2-Vlanif20] ip address 192.168.20.3 24
+[SW2-Vlanif20] vrrp vrid 20 virtual-ip 192.168.20.1
+[SW2-Vlanif20] vrrp vrid 20 priority 120
+[SW2-Vlanif20] vrrp vrid 20 preempt-mode timer delay 20
+```
+
+Why: PCs use the virtual IP as gateway. The higher priority wins the master role. Splitting masters per VLAN shares load across both switches. The preempt delay stops a rebooting switch taking over before OSPF has converged.
+
+## 3.3 Access ports
+
+Replace with your real ports.
+
+```
+[SW1] interface GE1/0/5
+[SW1-GE1/0/5] port link-type access
+[SW1-GE1/0/5] port default vlan 10
+```
+
+PC1: `192.168.10.10/24`, gateway `192.168.10.1`. PC2: `192.168.20.10/24`, gateway `192.168.20.1`.
+
+## 3.4 Advertise customer subnets into OSPF
+
+Apply on SW1 and SW2.
+
+```
+[SW1] ospf 1
+[SW1-ospf-1] area 0
+[SW1-ospf-1-area-0.0.0.0] network 192.168.10.0 0.0.0.255
+[SW1-ospf-1-area-0.0.0.0] network 192.168.20.0 0.0.0.255
+[SW1-ospf-1-area-0.0.0.0] quit
+[SW1-ospf-1] silent-interface Vlanif10
+[SW1-ospf-1] silent-interface Vlanif20
+```
+
+Why silent: the subnets are still advertised, but no OSPF hellos go to the customer side, so nobody there can form a neighbour or inject routes.
+
+## Verify
+
+```
+display eth-trunk 1
+display vrrp brief
+display vlan
+display ospf interface
+display ip routing-table protocol ospf
+```
+
+Expected:
+- Both Eth-Trunk members **Selected**
+- SW1 Master for VRID 10, SW2 Master for VRID 20
+- Vlanif10 and Vlanif20 listed as silent
+- CORE1 learns 192.168.10.0/24 and 192.168.20.0/24
+- PC1 pings PC2
+
+## Failover tests
+
+| Test | Action | Expected | Result | Packets lost |
+|---|---|---|---|---|
+| Gateway failover | Shut SW1 uplinks or SW1 | VRRP VLAN10 master moves to SW2 | | |
+| Link failure | Shut one Eth-Trunk member | Traffic continues on the other | | |
+| Core failure | Shut CORE1 | OSPF reconverges via CORE2 | | |
+| Recovery | Restore SW1 | SW1 regains master after 20 s delay | | |
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| Members Unselected | Mode or speed mismatch, other side not configured |
+| Both switches Master | VLANs not allowed on the trunk, or trunk down |
+| Both Backup | VRID or virtual IP mismatch |
+| PC reaches gateway but not the core | Customer subnet not advertised in OSPF, or Vlanif down |
+| `silent-interface` rejected | Still in area view, run `quit` first |
+
+## Evidence
+
+![Eth-Trunk status](../screenshots/phase3-eth-trunk-sw1.png)
+![VRRP status SW1](../screenshots/phase3-vrrp-brief-sw1.png)
+![VRRP status SW2](../screenshots/phase3-vrrp-brief-sw2.png)
+![Silent interfaces](../screenshots/phase3-ospf-interface-sw1.png)
+![Customer routes on CORE1](../screenshots/phase3-core1-routes.png)
+![PC1 to PC2 ping](../screenshots/phase3-pc1-pc2-ping.png)
+![Failover test](../screenshots/phase3-failover.png)
+
 
